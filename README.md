@@ -13,5 +13,5 @@ If a new tag is released in the [tianocore/edk2](https://github.com/tianocore/ed
 
 ---
 
-Source Code: Access the source code for edk2 [here](https://github.com/tianocore/edk2).
-Older Releases: For older versions of edk2-unraid, please visit [this link](https://github.com/ich777/edk2-unraid/releases).
+**Source Code:** Access the source code for edk2 [here](https://github.com/tianocore/edk2).  
+**Older Releases:** For older versions of edk2-unraid, please visit [this link](https://github.com/ich777/edk2-unraid/releases).
