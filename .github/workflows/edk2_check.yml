@@ -25,8 +25,7 @@ jobs:
       run: |
         # Grab latest edk2 release from official repostiory and latest compiled release version from this repostiory
         LATEST_EDK2="$(curl -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} -s https://api.github.com/repos/tianocore/edk2/releases/latest | jq -r '.tag_name' | sed 's/^v//')"
-        CURRENT_EDK2=edk2
-        #CURRENT_EDK2="$(curl -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} -s https://api.github.com/repos/unraid/unraid-edk2/releases/latest | jq -r '.tag_name' | sed 's/^v//')"
+        CURRENT_EDK2="$(curl -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} -s https://api.github.com/repos/unraid/unraid-edk2/releases/latest | jq -r '.tag_name' | sed 's/^v//')"
 
         # Check if one of the versions is empty
         if [[ -z "${LATEST_EDK2}" || -z "${CURRENT_EDK2}" ]]; then
