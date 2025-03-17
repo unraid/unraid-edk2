@@ -1,0 +1,124 @@
+name: edk2 Check
+
+on:
+  # Set schedule to run every  hours
+  schedule:
+    - cron: '0 */12 * * *'
+
+  # Allow to trigger action manually
+  workflow_dispatch:
+
+jobs:
+  check_version:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 1
+
+    - name: Install dependencies
+      run: sudo apt-get -y install uuid-dev nasm iasl
+
+    - name: Check versions
+      run: |
+        # Grab latest edk2 release from official repostiory and latest compiled release version from this repostiory
+        LATEST_EDK2="$(curl -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} -s https://api.github.com/repos/tianocore/edk2/releases/latest | jq -r '.tag_name' | sed 's/^v//')"
+        CURRENT_EDK2=edk2
+        #CURRENT_EDK2="$(curl -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }} -s https://api.github.com/repos/unraid/unraid-edk2/releases/latest | jq -r '.tag_name' | sed 's/^v//')"
+
+        # Check if one of the versions is empty
+        if [[ -z "${LATEST_EDK2}" || -z "${CURRENT_EDK2}" ]]; then
+          echo "Can't get versions"
+          exit 1
+        fi
+
+        # Check versions
+        if [ "${LATEST_EDK2}" != "${CURRENT_EDK2}" ]; then
+          echo "CREATE_RELEASE=true" >> $GITHUB_ENV
+          echo "EDK2_VERSION=${LATEST_EDK2##*-}" >> $GITHUB_ENV
+        else
+          echo "${CURRENT_EDK2} up to date!"
+          echo "CREATE_RELEASE=false" >> $GITHUB_ENV
+          exit 0
+        fi
+
+        # Create directories
+        mkdir -p ${LATEST_EDK2##*-}/install
+        mkdir -p ${LATEST_EDK2##*-}/usr/share/qemu/ovmf-x64
+        mkdir -p ${LATEST_EDK2}
+
+        # Clone edk2, echkout branch and init repo
+        git clone https://github.com/tianocore/edk2.git
+        cd ./edk2
+        git checkout ${LATEST_EDK2}
+        git submodule update --init
+
+        # Copy Unraid logo
+        cp ${GITHUB_WORKSPACE}/Logo.bmp ${GITHUB_WORKSPACE}/edk2/MdeModulePkg/Logo/Logo.bmp
+
+        # Apply patch
+        patch ${GITHUB_WORKSPACE}/edk2/OvmfPkg/Library/PlatformBmPrintScLib/StatusCodeHandler.c < ${GITHUB_WORKSPACE}/hidemessage.patch
+
+        # Prepare for build
+        make -C BaseTools -j$(nproc --all)
+
+        # Build OVMF with TPM enabled
+        OvmfPkg/build.sh -b RELEASE -a X64 -t GCC5 -n $(nproc --all) -D TPM1_ENABLE -D TPM2_ENABLE -D TPM_CONFIG_ENABLE -D SECURE_BOOT_ENABLE -D NETWORK_TLS_ENABLE || exit 1
+
+        # Move TPM build to temporary directory
+        mv Build/OvmfX64 Build/OvmfX64_TPM
+
+        # Build OVMF without TPM enabled
+        OvmfPkg/build.sh -b RELEASE -a X64 -t GCC5 -n $(nproc --all) -D FD_SIZE_2MB || exit 1
+
+        # Copy TPM build to temporary directory
+        cp Build/OvmfX64_TPM/RELEASE_GCC5/FV/OVMF_CODE.fd ${GITHUB_WORKSPACE}/${LATEST_EDK2##*-}/usr/share/qemu/ovmf-x64/OVMF_CODE-pure-efi-tpm.fd
+        cp Build/OvmfX64_TPM/RELEASE_GCC5/FV/OVMF_VARS.fd ${GITHUB_WORKSPACE}/${LATEST_EDK2##*-}/usr/share/qemu/ovmf-x64/OVMF_VARS-pure-efi-tpm.fd
+
+        # Copy build without TPM to temporary directory
+        cp Build/OvmfX64/RELEASE_GCC5/FV/OVMF_CODE.fd ${GITHUB_WORKSPACE}/${LATEST_EDK2##*-}/usr/share/qemu/ovmf-x64/OVMF_CODE-pure-efi.fd
+        cp Build/OvmfX64/RELEASE_GCC5/FV/OVMF_VARS.fd ${GITHUB_WORKSPACE}/${LATEST_EDK2##*-}/usr/share/qemu/ovmf-x64/OVMF_VARS-pure-efi.fd
+
+        # Copy slack-description into temporary directory, create package and md5sum
+        cd ${GITHUB_WORKSPACE}/${LATEST_EDK2##*-}
+        cp ${GITHUB_WORKSPACE}/slack-desc ${GITHUB_WORKSPACE}/${LATEST_EDK2##*-}/install/slack-desc 
+        bash ${GITHUB_WORKSPACE}/makepkg -l y -c y ${GITHUB_WORKSPACE}/${LATEST_EDK2}/ovmf-${LATEST_EDK2##*-}-x86_64-1.txz
+        md5sum ${GITHUB_WORKSPACE}/${LATEST_EDK2}/ovmf-${LATEST_EDK2##*-}-x86_64-1.txz | awk '{print $1}' > ${GITHUB_WORKSPACE}/${LATEST_EDK2}/ovmf-${LATEST_EDK2##*-}-x86_64-1.txz.md5
+
+    - name: Create Release
+      if: env.CREATE_RELEASE == 'true' && success()
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: edk2-${{ env.EDK2_VERSION }}
+        release_name: "edk2-${{ env.EDK2_VERSION }}"
+        body: |
+          OVMF for QEMU - edk2-${{ env.EDK2_VERSION }}, custom package for Unraid/Slackware
+        draft: false
+        prerelease: false
+
+    - name: Upload txz to Release
+      if: env.CREATE_RELEASE == 'true' && success()
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./edk2-${{ env.EDK2_VERSION }}/ovmf-${{ env.EDK2_VERSION }}-x86_64-1.txz
+        asset_name: ovmf-${{ env.EDK2_VERSION }}-x86_64-1.txz
+        asset_content_type: application/x-xz
+
+    - name: Upload md5 to Release
+      if: env.CREATE_RELEASE == 'true' && success()
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./edk2-${{ env.EDK2_VERSION }}/ovmf-${{ env.EDK2_VERSION }}-x86_64-1.txz.md5
+        asset_name: ovmf-${{ env.EDK2_VERSION }}-x86_64-1.txz.md5
+        asset_content_type: text/plain
