@@ -1,0 +1,22 @@
+diff --git a/UefiCpuPkg/CpuDxe/CpuDxe.c b/UefiCpuPkg/CpuDxe/CpuDxe.c
+--- a/UefiCpuPkg/CpuDxe/CpuDxe.c
++++ b/UefiCpuPkg/CpuDxe/CpuDxe.c
+@@ -1034,8 +1034,3 @@ InitializeCpu (
+   ASSERT_EFI_ERROR (Status);
+-  //
+-  // Install EFI memory attribute Protocol
+-  //
+-  InstallEfiMemoryAttributeProtocol (mCpuHandle);
+-
+   //
+   // Refresh GCD memory space map according to MTRR value.
+
+diff --git a/UefiCpuPkg/CpuDxe/CpuDxe.inf b/UefiCpuPkg/CpuDxe/CpuDxe.inf
+--- a/UefiCpuPkg/CpuDxe/CpuDxe.inf
++++ b/UefiCpuPkg/CpuDxe/CpuDxe.inf
+@@ -76,5 +76,4 @@
+ [Protocols]
+   gEfiCpuArchProtocolGuid                       ## PRODUCES
+-  gEfiMemoryAttributeProtocolGuid               ## PRODUCES
+   gEfiMpServiceProtocolGuid                     ## PRODUCES
+   gEfiSmmBase2ProtocolGuid                      ## SOMETIMES_CONSUMES

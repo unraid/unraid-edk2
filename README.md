@@ -11,6 +11,8 @@ This repository provides the necessary tools to build edk2 for Unraid including 
 
 If a new tag is released in the [tianocore/edk2](https://github.com/tianocore/edk2) repository, a new package will be built and pushed to the [Releases](https://github.com/unraid/unraid-edk2/releases).
 
+Note: The legacy EFI memory attribute revert patch is archived under archive/, and CI now applies the minimal compatibility patch from patches/disable_efi_mem_attr_proto_minimal.patch.
+
 ---
 
 **Source Code:** Access the source code for edk2 [here](https://github.com/tianocore/edk2).  
