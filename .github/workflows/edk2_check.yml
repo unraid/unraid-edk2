@@ -60,8 +60,8 @@ jobs:
         # Apply patch
         patch ${GITHUB_WORKSPACE}/edk2/OvmfPkg/Library/PlatformBmPrintScLib/StatusCodeHandler.c < ${GITHUB_WORKSPACE}/hidemessage.patch
 
-        # Workaround for distributions using newer GRUB2 version which prevents boot
-        git apply ${GITHUB_WORKSPACE}/disable_efi_mem_attr_proto.patch
+        # Workaround for distributions using newer GRUB2 version which prevents boot.
+        patch -p1 < ${GITHUB_WORKSPACE}/patches/disable_efi_mem_attr_proto_minimal.patch
         
         # Prepare for build
         make -C BaseTools -j$(nproc --all)
