@@ -86,21 +86,21 @@ jobs:
         make -C BaseTools -j$(nproc --all)
 
         # Build OVMF with TPM enabled
-        OvmfPkg/build.sh -b RELEASE -a X64 -t GCC5 -n $(nproc --all) -D TPM1_ENABLE -D TPM2_ENABLE -D TPM_CONFIG_ENABLE -D SECURE_BOOT_ENABLE -D NETWORK_TLS_ENABLE || exit 1
+        OvmfPkg/build.sh -b RELEASE -a X64 -t GCC -n $(nproc --all) -D TPM1_ENABLE -D TPM2_ENABLE -D TPM_CONFIG_ENABLE -D SECURE_BOOT_ENABLE -D NETWORK_TLS_ENABLE || exit 1
 
         # Move TPM build to temporary directory
         mv Build/OvmfX64 Build/OvmfX64_TPM
 
         # Build OVMF without TPM enabled
-        OvmfPkg/build.sh -b RELEASE -a X64 -t GCC5 -n $(nproc --all) -D FD_SIZE_2MB || exit 1
+        OvmfPkg/build.sh -b RELEASE -a X64 -t GCC -n $(nproc --all) -D FD_SIZE_2MB || exit 1
 
         # Copy TPM build to temporary directory
-        cp Build/OvmfX64_TPM/RELEASE_GCC5/FV/OVMF_CODE.fd ${GITHUB_WORKSPACE}/${LATEST_EDK2##*-}/usr/share/qemu/ovmf-x64/OVMF_CODE-pure-efi-tpm.fd
-        cp Build/OvmfX64_TPM/RELEASE_GCC5/FV/OVMF_VARS.fd ${GITHUB_WORKSPACE}/${LATEST_EDK2##*-}/usr/share/qemu/ovmf-x64/OVMF_VARS-pure-efi-tpm.fd
+        cp Build/OvmfX64_TPM/RELEASE_GCC/FV/OVMF_CODE.fd ${GITHUB_WORKSPACE}/${LATEST_EDK2##*-}/usr/share/qemu/ovmf-x64/OVMF_CODE-pure-efi-tpm.fd
+        cp Build/OvmfX64_TPM/RELEASE_GCC/FV/OVMF_VARS.fd ${GITHUB_WORKSPACE}/${LATEST_EDK2##*-}/usr/share/qemu/ovmf-x64/OVMF_VARS-pure-efi-tpm.fd
 
         # Copy build without TPM to temporary directory
-        cp Build/OvmfX64/RELEASE_GCC5/FV/OVMF_CODE.fd ${GITHUB_WORKSPACE}/${LATEST_EDK2##*-}/usr/share/qemu/ovmf-x64/OVMF_CODE-pure-efi.fd
-        cp Build/OvmfX64/RELEASE_GCC5/FV/OVMF_VARS.fd ${GITHUB_WORKSPACE}/${LATEST_EDK2##*-}/usr/share/qemu/ovmf-x64/OVMF_VARS-pure-efi.fd
+        cp Build/OvmfX64/RELEASE_GCC/FV/OVMF_CODE.fd ${GITHUB_WORKSPACE}/${LATEST_EDK2##*-}/usr/share/qemu/ovmf-x64/OVMF_CODE-pure-efi.fd
+        cp Build/OvmfX64/RELEASE_GCC/FV/OVMF_VARS.fd ${GITHUB_WORKSPACE}/${LATEST_EDK2##*-}/usr/share/qemu/ovmf-x64/OVMF_VARS-pure-efi.fd
 
         # Copy slack-description into temporary directory, create package and md5sum
         cd ${GITHUB_WORKSPACE}/${LATEST_EDK2##*-}
